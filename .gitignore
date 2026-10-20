@@ -1,0 +1,14 @@
+# project level
+/breakroom
+/dist/
+
+# os
+.DS_Store
+
+
+# benchmark
+bench/sidecar/out*
+bench/sidecar/run*log
+
+# docs
+/docs/internal

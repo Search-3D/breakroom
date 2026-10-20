@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "name": "breakroom",
+  "displayName": "Breakroom",
+  "version": "0.1.0",
+  "description": "Autonomous multi-agent coordination for Muse Code: zero-token peer holds, lifecycle gates, and MCP broker.",
+  "compat": {
+    "source": "native",
+    "manifestDir": ".muse-plugin"
+  },
+  "capabilities": {
+    "skills": [
+      {
+        "id": "breakroom",
+        "path": "skills/breakroom/SKILL.md",
+        "enabledDefault": true
+      }
+    ],
+    "hooks": [
+      {
+        "id": "stop-gate",
+        "event": "Stop",
+        "command": ["breakroom", "gate", "--event", "stop", "--host", "muse"],
+        "timeoutMs": 600000,
+        "statusMessage": "Waiting for blueprint peer..."
+      },
+      {
+        "id": "prompt-gate",
+        "event": "UserPromptSubmit",
+        "command": ["breakroom", "gate", "--event", "prompt", "--host", "muse"],
+        "timeoutMs": 10000,
+        "statusMessage": "Checking Breakroom mail"
+      }
+    ],
+    "mcpServers": [
+      {
+        "id": "breakroom",
+        "transport": "stdio",
+        "command": ["breakroom", "mcp"]
+      }
+    ],
+    "reminders": []
+  }
+}

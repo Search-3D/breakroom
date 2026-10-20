@@ -1,0 +1,12 @@
+{
+  "name": "breakroom",
+  "version": "0.1.0",
+  "description": "Multi-agent coordination broker for Claude Code",
+  "author": {
+    "name": "Search3D",
+    "url": "https://github.com/search-3d"
+  },
+  "homepage": "https://github.com/search-3d/breakroom",
+  "repository": "https://github.com/search-3d/breakroom",
+  "license": "MIT"
+}

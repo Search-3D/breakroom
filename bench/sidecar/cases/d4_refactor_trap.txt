@@ -1,0 +1,38 @@
+Files:
+- internal/ratelimit/limiter.go
+
+Diff (may be truncated):
+diff --git a/internal/ratelimit/limiter.go b/internal/ratelimit/limiter.go
+index 4d5e6f7..8a9b0c1 100644
+--- a/internal/ratelimit/limiter.go
++++ b/internal/ratelimit/limiter.go
+@@ -26,15 +26,24 @@ func New(store Counter, max int, window time.Duration, log *slog.Logger) *Limite
+ 
+ // Allow records one hit for key and reports whether it is within the limit.
+ func (l *Limiter) Allow(ctx context.Context, key string) (bool, error) {
+-	n, err := l.store.Incr(ctx, l.bucket(key), l.window)
+-	if err != nil {
+-		return false, err
+-	}
+-	if n > l.max {
+-		return false, nil
+-	}
+-	return true, nil
++	n, err := l.hits(ctx, key)
++	if err != nil {
++		l.log.Warn("ratelimit: incr failed", "key", key, "err", err)
++	}
++	return !l.over(n), nil
++}
++
++// hits increments and returns the hit count for key's current window.
++func (l *Limiter) hits(ctx context.Context, key string) (int, error) {
++	return l.store.Incr(ctx, l.bucket(key), l.window)
++}
++
++// over reports whether n exceeds the configured limit.
++func (l *Limiter) over(n int) bool {
++	return n >= l.max
+ }
+ 
+ func (l *Limiter) bucket(key string) string {

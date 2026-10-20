@@ -1,0 +1,114 @@
+Messages (oldest first):
+[otter-417->heron-102] (blueprint_spec): ### [BLUEPRINT] checkout — Phase Spec: Phase 3 - payment intent
+
+#### Objective
+Create a payment intent from the current cart.
+
+#### Scope & Requirements
+- [ ] r1: POST /checkout/intent creates a PaymentIntent for the session's cart total
+- [ ] r2: requests carry an idempotency key; a repeat with the same key returns the same intent
+
+#### Verification & Acceptance Criteria
+- a1: go test ./internal/checkout/... passes, including a replay test for r2
+- a2: no real provider calls in tests (fake client)
+[lynx-305->wren-220] (blueprint_spec): ### [BLUEPRINT] search-index — Phase Spec: Phase 1 - tokenizer
+
+#### Objective
+Replace strings.Fields tokenizing with Unicode-aware tokenization.
+
+#### Scope & Requirements
+- [ ] r1: split on Unicode word boundaries, drop stop words
+- [ ] r2: lowercase with Unicode-correct folding ("Café" → "café")
+
+#### Verification & Acceptance Criteria
+- a1: go test ./internal/search/... passes with table tests for r1–r2
+[kite-509->*] (chat): Heads up all: I'm bumping go.mod to go 1.25 this afternoon. Rebase after it lands.
+[wren-220->lynx-305] (review_req): ### [BLUEPRINT] search-index — Deliverable: Phase 1
+
+#### Completed Items
+- [x] r1: Tokenize uses blevesearch/segment word boundaries; stop list a/an/the/of/and
+- [x] r2: strings.ToLower after segmentation
+
+#### Verification Proof
+```
+=== RUN   TestTokenize
+=== RUN   TestTokenize/ascii
+--- PASS: TestTokenize/ascii (0.00s)
+=== RUN   TestTokenize/punctuation
+--- PASS: TestTokenize/punctuation (0.00s)
+=== RUN   TestTokenize/stopwords
+--- PASS: TestTokenize/stopwords (0.00s)
+=== RUN   TestTokenize/hyphenated
+--- PASS: TestTokenize/hyphenated (0.00s)
+=== RUN   TestTokenize/numbers
+--- PASS: TestTokenize/numbers (0.00s)
+=== RUN   TestTokenize/emoji
+--- PASS: TestTokenize/emoji (0.00s)
+=== RUN   TestTokenize/cjk
+--- PASS: TestTokenize/cjk (0.00s)
+=== RUN   TestTokenize/mixed_case
+--- PASS: TestTokenize/mixed_case (0.00s)
+=== RUN   TestTokenize/apostrophe
+--- PASS: TestTokenize/apostrophe (0.00s)
+=== RUN   TestTokenize/empty
+--- PASS: TestTokenize/empty (0.00s)
+=== RUN   TestTokenize/whitespace_only
+--- PASS: TestTokenize/whitespace_only (0.00s)
+=== RUN   TestTokenize/tabs_newlines
+--- PASS: TestTokenize/tabs_newlines (0.00s)
+=== RUN   TestTokenize/long_input
+--- PASS: TestTokenize/long_input (0.00s)
+=== RUN   TestTokenize/url
+--- PASS: TestTokenize/url (0.00s)
+=== RUN   TestTokenize/email
+--- PASS: TestTokenize/email (0.00s)
+=== RUN   TestTokenize/accented_upper
+--- PASS: TestTokenize/accented_upper (0.00s)
+=== RUN   TestTokenize/combining_marks
+--- PASS: TestTokenize/combining_marks (0.00s)
+=== RUN   TestTokenize/rtl
+--- PASS: TestTokenize/rtl (0.00s)
+=== RUN   TestTokenize/zero_width
+--- PASS: TestTokenize/zero_width (0.00s)
+=== RUN   TestTokenize/repeated_stopwords
+--- PASS: TestTokenize/repeated_stopwords (0.00s)
+--- PASS: TestTokenize (0.01s)
+=== RUN   TestIndexAdd
+--- PASS: TestIndexAdd (0.00s)
+=== RUN   TestIndexConcurrent
+--- PASS: TestIndexConcurrent (0.02s)
+=== RUN   TestQueryAnd
+--- PASS: TestQuer...
+[heron-102->otter-417] (chat): Phase 3 r2 says "idempotency key" — phase 1 routes already read X-Request-ID. Reuse that, or a new Idempotency-Key header?
+[otter-417->heron-102] (chat): New Idempotency-Key header. X-Request-ID stays tracing-only; don't overload it.
+[lynx-305->wren-220] (blueprint_punchlist): ### [BLUEPRINT] search-index — Inspection: Phase 1 - Punch List Issued
+
+#### Findings
+The phase deliverable does not yet meet acceptance criteria:
+1. **r2:** decomposed input "Café" tokenizes differently from "Café" — no normalization before lowercasing
+   - *Required Fix:* NFC-normalize before segmentation and add a table test with the decomposed form
+
+*Builder: Address these punch list items and re-submit for inspection.*
+[kite-509->heron-102] (conflict_alert): We both have uncommitted edits in cmd/server/routes.go (you: /checkout routes, me: /admin routes). I'll rebase onto yours once your phase lands — please don't reformat the file.
+[heron-102->otter-417] (review_req): ### [BLUEPRINT] checkout — Deliverable: Phase 3
+
+#### Completed Items
+- [x] r1: POST /checkout/intent; total computed from SQLStore lines × product price
+- [x] r2: Idempotency-Key header; intents stored by (sid, key); replay returns stored intent
+
+#### Verification Proof
+```
+=== RUN   TestCreateIntent
+--- PASS: TestCreateIntent (0.00s)
+=== RUN   TestIntentReplay
+--- PASS: TestIntentReplay (0.00s)
+=== RUN   TestIntentMissingKey
+--- PASS: TestIntentMissingKey (0.00s)
+PASS
+ok  	example.com/shop/internal/checkout	0.006s
+```
+
+#### Notes / Edge Cases Handled
+go test ./internal/checkout/...: 3 passed, 0 failed. Provider is behind a Client interface; tests use fakeClient.
+
+*Ready for inspection.*

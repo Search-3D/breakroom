@@ -1,0 +1,6 @@
+{
+  "name": "breakroom",
+  "version": "0.1.0",
+  "description": "Multi-agent coordination broker for Codex",
+  "skills": "./skills/"
+}

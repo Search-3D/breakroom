@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event prompt --host vscode",
+        "timeout": 60
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event stop --host vscode",
+        "timeout": 600
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "breakroom check --hook-event PostToolUse",
+        "timeout": 60
+      }
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+Files:
+- cmd/server/routes.go
+- internal/cart/cart.go
+- internal/cart/cart_test.go
+
+Diff (may be truncated):
+diff --git a/cmd/server/routes.go b/cmd/server/routes.go
+index 3f2a1c0..8b9d4e2 100644
+--- a/cmd/server/routes.go
++++ b/cmd/server/routes.go
+@@ -1,9 +1,11 @@
+ package main
+ 
+ import (
+ 	"net/http"
++
++	"example.com/shop/internal/cart"
+ )
+ 
+@@ -12,6 +14,10 @@ func routes(mux *http.ServeMux, deps Deps) {
+ 	mux.HandleFunc("GET /healthz", healthz)
+ 	mux.HandleFunc("GET /products", deps.Products.List)
+ 	mux.HandleFunc("GET /products/{id}", deps.Products.Get)
++
++	c := cart.NewHandler(cart.NewMemStore())
++	mux.HandleFunc("POST /cart/items", c.Add)
++	mux.HandleFunc("GET /cart", c.Get)
+ }
+diff --git a/internal/cart/cart.go b/internal/cart/cart.go
+new file mode 100644
+index 0000000..a41c9e7
+--- /dev/null
++++ b/internal/cart/cart.go
+@@ -0,0 +1,71 @@
++// Package cart holds a per-session shopping cart.
++package cart
++
++import (
++	"encoding/json"
++	"net/http"
++	"sync"
++)
++
++// Item is one product line in a cart.
++type Item struct {
++	ProductID string `json:"product_id"`
++	Qty       int    `json:"qty"`
++}
++
++// MemStore keeps carts in memory, keyed by session id.
++type MemStore struct {
++	mu    sync.Mutex
++	carts map[string][]Item
++}
++
++func NewMemStore() *MemStore { return &MemStore{carts: map[string][]Item{}} }
++
++// Add merges it into the session's cart, summing quantities per product.
++func (s *MemStore) Add(sid string, it Item) {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	for i, have := range s.carts[sid] {
++		if have.ProductID == it.ProductID {
++			s.carts[sid][i].Qty += it.Qty
++			return
++		}
++	}
++	s.carts[sid] = append(s.carts[sid], it)
++}
++
++func (s *MemStore) Get(sid string) []Item {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	return append([]Item{}, s.carts[sid]...)
++}
++
++type Handler struct{ store *MemStore }
++
++func NewHandler(s *MemStore) *Handler { return &Handler{store: s} }
++
++func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
++	sid, err := r.Cookie("sid")
++	if err != nil {
++		http.Error(w, "missing session", http.StatusBadRequest)
++		return
++	}
++	var it Item
++	if err := json.NewDecoder(r.Body).Decode(&it); err != nil || it.ProductID == "" {
++		http.Error(w, "bad item", http.StatusBadRequest)
++		return
++	}
++	if it.Qty < 1 {
++		http.Error(w, "qty must be >= 1", http.StatusBadRequest)
++		return
++	}
++	h.store.Add(sid.Value, it)
++	w.WriteHeader(http.StatusNoContent)
++}
++
++func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
++	sid, err := r.Cookie("sid")
++	if err != nil {
++		http.Error(w, "missing session", http.StatusBadRequest)
++		return
++	}
++	_ = json.NewEncoder(w).Encode(h.store.Get(sid.Value))
++}
+diff --git a/internal/cart/cart_test.go b/internal/cart/cart_test.go
+new file mode 100644
+index 0000000..5d0e1b3
+--- /dev/null
++++ b/internal/cart/cart_test.go
+@@ -0,0 +1,42 @@
++package cart
++
++import (
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++)
++
++func TestAddMerges(t *testing.T) {
++	s := NewMemStore()
++	s.Add("s1", Item{ProductID: "p1", Qty: 1})
++	s.Add("s1", Item{ProductID: "p1", Qty: 2})
++	if got := s.Get("s1")[0].Qty; got != 3 {
++		t.Fatalf("qty = %d, want 3", got)
++	}
++}
++
++func TestAddRejectsZeroQty(t *testing.T) {
++	h := NewHandler(NewMemStore())
++	req := httptest.NewRequest("POST", "/cart/items", strings.NewReader(`{"product_id":"p1","qty":0}`))
++	req.AddCookie(&http.Cookie{Name: "sid", Value: "s1"})
++	rec := httptest.NewRecorder()
++	h.Add(rec, req)
++	if rec.Code != http.StatusBadRequest {
++		t.Fatalf("code = %d, want 400", rec.Code)
++	}
++}
++
++func TestGetEmpty(t *testing.T) {
++	h := NewHandler(NewMemStore())
++	req := httptest.NewRequest("GET", "/cart", nil)
++	req.AddCookie(&http.Cookie{Name: "sid", Value: "nobody"})
++	rec := httptest.NewRecorder()
++	h.Get(rec, req)
++	if strings.TrimSpace(rec.Body.String()) != "[]" {
++		t.Fatalf("body = %q, want []", rec.Body.String())
++	}
++}

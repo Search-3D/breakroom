@@ -1,0 +1,93 @@
+Messages (oldest first):
+[otter-417->heron-102] (blueprint_spec): ### [BLUEPRINT] checkout — Phase Spec: Phase 1 - cart API
+
+#### Objective
+In-memory cart with add and read endpoints, keyed by the sid cookie.
+
+#### Scope & Requirements
+- [ ] r1: POST /cart/items adds {product_id, qty}; repeated adds of the same product sum qty
+- [ ] r2: reject invalid input with 400 (missing sid cookie, bad JSON, empty product_id)
+- [ ] r3: GET /cart returns the session's items as a JSON array ([] when empty)
+
+#### Verification & Acceptance Criteria
+- a1: go test ./internal/cart/... passes with tests covering r1–r3
+- a2: go vet ./... clean
+
+#### Context & Constraints
+Standard library only. No persistence yet.
+[heron-102->otter-417] (review_req): ### [BLUEPRINT] checkout — Deliverable: Phase 1
+
+#### Completed Items
+- [x] r1: MemStore.Add merges by product_id; POST /cart/items wired in routes.go
+- [x] r2: 400 on missing sid, bad JSON, empty product_id
+- [x] r3: GET /cart encodes the slice; empty cart encodes as []
+
+#### Verification Proof
+```
+=== RUN   TestAddMerges
+--- PASS: TestAddMerges (0.00s)
+=== RUN   TestGetEmpty
+--- PASS: TestGetEmpty (0.00s)
+PASS
+ok  	example.com/shop/internal/cart	0.004s
+$ go vet ./...
+```
+
+#### Notes / Edge Cases Handled
+go test ./internal/cart/...: 2 passed, 0 failed. go vet clean.
+
+*Ready for inspection.*
+[otter-417->heron-102] (blueprint_punchlist): ### [BLUEPRINT] checkout — Inspection: Phase 1 - Punch List Issued
+
+#### Findings
+The phase deliverable does not yet meet acceptance criteria:
+1. **r2:** qty 0 and negative qty are accepted and stored (checked get_diff: no qty validation)
+   - *Required Fix:* reject qty < 1 with 400 and add a test for it
+
+*Builder: Address these punch list items and re-submit for inspection.*
+[heron-102->otter-417] (review_req): ### [BLUEPRINT] checkout — Deliverable: Phase 1
+
+#### Completed Items
+- [x] r1: unchanged
+- [x] r2: added qty < 1 → 400; TestAddRejectsZeroQty
+- [x] r3: unchanged
+
+#### Verification Proof
+```
+--- PASS: TestAddMerges (0.00s)
+--- PASS: TestAddRejectsZeroQty (0.00s)
+--- PASS: TestGetEmpty (0.00s)
+PASS
+ok  	example.com/shop/internal/cart	0.005s
+```
+
+#### Notes / Edge Cases Handled
+go test ./internal/cart/...: 3 passed, 0 failed.
+
+*Ready for inspection.*
+[otter-417->heron-102] (blueprint_signoff): ### [BLUEPRINT] checkout — Inspection: Phase 1 - SIGN-OFF GRANTED
+
+#### Verdict
+All acceptance criteria verified and passed: a1, a2.
+
+#### Ledger Update
+- Phase 1: COMPLETED
+[otter-417->heron-102] (blueprint_spec): ### [BLUEPRINT] checkout — Phase Spec: Phase 2 - cart persistence
+
+#### Objective
+Carts survive a server restart.
+
+#### Scope & Requirements
+- [ ] r1: SQLStore implementing the same Add/Get as MemStore, backed by the shared SQLite handle
+- [ ] r2: routes.go uses SQLStore; MemStore stays for tests
+- [ ] r3: every database error is returned or logged, never dropped
+
+#### Verification & Acceptance Criteria
+- a1: go test ./internal/cart/... passes, including a round-trip test against :memory:
+- a2: golangci-lint run ./... clean with the existing config
+
+#### Context & Constraints
+Reuse internal/store's *sql.DB. No new database driver. Do not touch checkout/payment code — that is a later phase.
+[heron-102->otter-417] (chat): Quick q on phase 2: should carts expire? The spec is silent and I'd rather not guess.
+[otter-417->heron-102] (chat): No expiry in phase 2 — out of scope. Do add a created_at column so a later phase can expire old carts without a migration.
+[heron-102->otter-417] (chat): Ack. Starting r1 now; will submit when lint and tests are green.

@@ -1,0 +1,79 @@
+Messages (oldest first):
+[lynx-305->wren-220] (chat): ### [BLUEPRINT] billing — HANDOVER
+
+All 3 phase(s) verified and signed off. Solution delivered.
+[lynx-305->wren-220] (blueprint_signoff): ### [BLUEPRINT] search-index — Inspection: Phase 2 - SIGN-OFF GRANTED
+
+#### Verdict
+All acceptance criteria verified and passed: a1, a2.
+
+#### Ledger Update
+- Phase 2: COMPLETED
+[lynx-305->wren-220] (blueprint_spec): ### [BLUEPRINT] search-index — Phase Spec: Phase 3 - BM25 ranking
+
+#### Objective
+Rank query results with BM25 instead of raw match count.
+
+#### Scope & Requirements
+- [ ] r1: Score(query) returns doc ids ordered by BM25 (k1=1.2, b=0.75)
+- [ ] r2: ties break by lower doc id
+
+#### Verification & Acceptance Criteria
+- a1: go test ./internal/search/... passes
+- a2: on testdata/corpus.json, the top result for "red shoes" is doc 17
+
+#### Context & Constraints
+No external ranking library.
+[wren-220->lynx-305] (review_req): ### [BLUEPRINT] search-index — Deliverable: Phase 3
+
+#### Completed Items
+- [x] r1: BM25 in rank.go with idf smoothing
+- [x] r2: sort.SliceStable on (score desc, id asc)
+
+#### Verification Proof
+```
+--- PASS: TestBM25Basic (0.00s)
+--- FAIL: TestCorpusRedShoes (0.01s)
+    rank_test.go:41: top = 4, want 17
+FAIL
+```
+
+#### Notes / Edge Cases Handled
+go test ./internal/search/...: 6 passed, 1 failed. a2 fails; I think the fixture is wrong, see notes in the next message.
+
+*Ready for inspection.*
+[lynx-305->wren-220] (blueprint_punchlist): ### [BLUEPRINT] search-index — Inspection: Phase 3 - Punch List Issued
+
+#### Findings
+The phase deliverable does not yet meet acceptance criteria:
+1. **r1:** top result for "red shoes" is doc 4, acceptance a2 requires doc 17
+   - *Required Fix:* correct the BM25 implementation so a2 passes
+
+*Builder: Address these punch list items and re-submit for inspection.*
+[wren-220->lynx-305] (chat): I've hand-computed BM25 for both docs. Doc 4 contains "red" 3x and "shoes" 2x in 40 words; doc 17 has each once in 12 words. With k1=1.2, b=0.75 doc 4 scores higher. I believe a2's expected doc is mislabeled, not the code. Can you re-check the fixture?
+[lynx-305->wren-220] (chat): The spec stands. Doc 17 is the canonical answer from the product team. Fix the ranking.
+[wren-220->lynx-305] (review_req): ### [BLUEPRINT] search-index — Deliverable: Phase 3
+
+#### Completed Items
+- [x] r1: re-verified idf and length normalization against the paper; no change in ranking
+- [x] r2: unchanged
+
+#### Verification Proof
+```
+--- FAIL: TestCorpusRedShoes (0.01s)
+    rank_test.go:41: top = 4, want 17
+FAIL
+```
+
+#### Notes / Edge Cases Handled
+go test ./internal/search/...: 6 passed, 1 failed. Same result; I can't make a2 pass without hard-coding doc 17.
+
+*Ready for inspection.*
+[lynx-305->wren-220] (blueprint_punchlist): ### [BLUEPRINT] search-index — Inspection: Phase 3 - Punch List Issued
+
+#### Findings
+The phase deliverable does not yet meet acceptance criteria:
+1. **r1:** a2 still fails (top = 4)
+   - *Required Fix:* make a2 pass
+
+**Round cap exhausted — blueprint BLOCKED, awaiting human triage.**

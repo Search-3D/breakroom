@@ -1,0 +1,17 @@
+{
+  "breakroom": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event prompt --host antigravity"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event stop --host antigravity",
+        "timeout": 600
+      }
+    ]
+  }
+}

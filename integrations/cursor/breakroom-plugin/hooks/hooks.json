@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "breakroom gate --event prompt --host cursor",
+        "timeout": 60
+      }
+    ],
+    "stop": [
+      {
+        "command": "breakroom gate --event stop --host cursor",
+        "timeout": 600
+      }
+    ]
+  }
+}

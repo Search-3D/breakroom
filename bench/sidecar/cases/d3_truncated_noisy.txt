@@ -1,0 +1,127 @@
+Files:
+- assets/logo.png
+- docs/search.md
+- go.mod
+- go.sum
+- internal/search/index.go
+- internal/search/legacy.go
+- internal/search/query.go
+- internal/search/tokenize.go
+- internal/search/tokenize_test.go
+
+Diff (may be truncated):
+diff --git a/assets/logo.png b/assets/logo.png
+new file mode 100644
+index 0000000..9f8e7d6
+Binary files /dev/null and b/assets/logo.png differ
+diff --git a/go.mod b/go.mod
+index 41a2b3c..c5d6e7f 100644
+--- a/go.mod
++++ b/go.mod
+@@ -3,6 +3,8 @@ module example.com/shop
+ go 1.24
+ 
+ require (
++	github.com/blevesearch/segment v0.9.1
++	golang.org/x/text v0.21.0
+ 	modernc.org/sqlite v1.34.4
+ )
+diff --git a/go.sum b/go.sum
+index 8a9b0c1..d2e3f4a 100644
+--- a/go.sum
++++ b/go.sum
+@@ -1,3 +1,7 @@
++github.com/blevesearch/segment v0.9.1 h1:+dThDy+Lvgj5JMxhmOVlgFfkUtZV2kw49xax4+jTfSU=
++github.com/blevesearch/segment v0.9.1/go.mod h1:zN21iLm7+GnBHWTao9I+Au/7MBiL8pPFtJBJTsk6kQw=
++golang.org/x/text v0.21.0 h1:zyQAAkrwaneQ066sspRyJaG9VNi/YJ1NfzcGB3hZ/qo=
++golang.org/x/text v0.21.0/go.mod h1:4IBbMaMmOPCJ8SecivzSH54+73PCFmPWxNTLm+vZkEQ=
+ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
+ github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qcwVhgaUmEDvGd0yI=
+ github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+diff --git a/internal/search/idx.go b/internal/search/index.go
+similarity index 91%
+rename from internal/search/idx.go
+rename to internal/search/index.go
+index 2b3c4d5..6e7f8a9 100644
+--- a/internal/search/idx.go
++++ b/internal/search/index.go
+@@ -9,15 +9,15 @@ import (
+-// idx is an inverted index from term to document ids.
+-type idx struct {
++// Index is an inverted index from term to document ids.
++type Index struct {
+ 	mu    sync.RWMutex
+ 	terms map[string][]int
+ }
+ 
+-func newIdx() *idx { return &idx{terms: map[string][]int{}} }
++func NewIndex() *Index { return &Index{terms: map[string][]int{}} }
+ 
+-func (x *idx) add(doc int, text string) {
+-	for _, t := range strings.Fields(strings.ToLower(text)) {
++func (x *Index) Add(doc int, text string) {
++	for _, t := range Tokenize(text) {
+ 		x.mu.Lock()
+ 		x.terms[t] = append(x.terms[t], doc)
+ 		x.mu.Unlock()
+diff --git a/internal/search/legacy.go b/internal/search/legacy.go
+deleted file mode 100644
+index 7c8d9e0..0000000
+--- a/internal/search/legacy.go
++++ /dev/null
+@@ -1,14 +0,0 @@
+-package search
+-
+-import "strings"
+-
+-// LegacyMatch is the pre-index substring search used by /search?mode=legacy.
+-func LegacyMatch(docs []string, q string) []int {
+-	var out []int
+-	for i, d := range docs {
+-		if strings.Contains(strings.ToLower(d), strings.ToLower(q)) {
+-			out = append(out, i)
+-		}
+-	}
+-	return out
+-}
+diff --git a/internal/search/tokenize.go b/internal/search/tokenize.go
+new file mode 100644
+index 0000000..1a2b3c4
+--- /dev/null
++++ b/internal/search/tokenize.go
+@@ -0,0 +1,58 @@
++package search
++
++import (
++	"strings"
++	"unicode"
++
++	"github.com/blevesearch/segment"
++	"golang.org/x/text/unicode/norm"
++)
++
++// stop lists terms dropped at index and query time.
++var stop = map[string]bool{"a": true, "an": true, "the": true, "of": true, "and": true}
++
++// Tokenize splits text on Unicode word boundaries, NFC-normalizes and
++// lowercases each word, and drops stop words and pure punctuation.
++func Tokenize(text string) []string {
++	seg := segment.NewWordSegmenter(strings.NewReader(norm.NFC.String(text)))
++	var out []string
++	for seg.Segment() {
++		if seg.Type() == segment.None {
++			continue
++		}
++		w := strings.ToLower(seg.Text())
++		if stop[w] || !hasLetterOrDigit(w) {
++			continue
++		}
++		out = append(out, w)
++	}
++	return out
++}
++
++func hasLetterOrDigit(s string) bool {
++	for _, r := range s {
++		if unicode.IsLetter(r) || unicode.IsDigit(r) {
++[diff truncated for summary]

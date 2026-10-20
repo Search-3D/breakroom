@@ -1,0 +1,27 @@
+{
+  "description": "Breakroom gate: mail delivery on prompt submit, blueprint stop holds.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "breakroom gate --event prompt --host codex",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "breakroom gate --event stop --host codex",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

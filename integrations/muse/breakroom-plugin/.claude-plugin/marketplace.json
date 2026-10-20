@@ -1,0 +1,20 @@
+{
+  "name": "breakroom-muse",
+  "description": "Breakroom plugin for Muse Code: autonomous multi-agent coordination, lifecycle gates, and zero-token peer holds.",
+  "owner": {
+    "name": "Search3D",
+    "url": "https://github.com/search-3d"
+  },
+  "plugins": [
+    {
+      "name": "breakroom",
+      "source": "./",
+      "description": "Autonomous multi-agent coordination for Muse Code",
+      "category": "productivity",
+      "author": {
+        "name": "Search3D",
+        "url": "https://github.com/search-3d"
+      }
+    }
+  ]
+}

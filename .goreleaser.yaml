@@ -1,0 +1,46 @@
+version: 2
+project_name: breakroom
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: breakroom
+    main: ./cmd/breakroom
+    binary: breakroom
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/search-3d/breakroom/internal/version.Version={{.Version}}
+archives:
+  - id: default
+    formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # Skills, docs, and host configs are embedded; `breakroom install` writes them.
+    files:
+      - LICENSE
+      - README.md
+checksum:
+  name_template: checksums.txt
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:"]
+homebrew_casks:
+  - repository:
+      owner: search-3d
+      name: homebrew-tap
+      # The workflow's GITHUB_TOKEN cannot push to another repo.
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/search-3d/breakroom
+    description: Deterministic multi-agent coordination and diff broker
+    license: MIT
+    # Release binaries aren't notarized; clear the quarantine flag Homebrew
+    # sets on casks so macOS doesn't block the first run.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/breakroom"]
+          end

@@ -1,0 +1,21 @@
+version: "2"
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - misspell
+    - ineffassign
+  settings:
+    errcheck:
+      # Cleanup calls whose errors the caller cannot act on.
+      exclude-functions:
+        - "(*database/sql.DB).Close"
+        - "(*database/sql.Rows).Close"
+        - "(*database/sql.Tx).Rollback"
+        - "(*os.File).Close"
+        - "(io.ReadCloser).Close"
+        - "(*github.com/search-3d/breakroom/internal/store.Store).Close"
+        - "os.RemoveAll"
+formatters:
+  enable:
+    - gofmt

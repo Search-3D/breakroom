@@ -1,0 +1,22 @@
+{
+  "name": "breakroom",
+  "version": "0.1.0",
+  "description": "Multi-agent coordination broker for Cursor",
+  "author": {
+    "name": "Search3D",
+    "url": "https://github.com/search-3d"
+  },
+  "homepage": "https://github.com/search-3d/breakroom",
+  "repository": "https://github.com/search-3d/breakroom",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "coordination",
+    "breakroom",
+    "mcp",
+    "collaboration"
+  ],
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./mcp.json"
+}

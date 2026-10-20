@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "userPromptSubmitted": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event prompt --host copilot",
+        "timeoutSec": 60
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "command": "breakroom gate --event stop --host copilot",
+        "timeoutSec": 600
+      }
+    ]
+  }
+}
