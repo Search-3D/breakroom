@@ -190,6 +190,9 @@ func RunForeground(idle time.Duration) error {
 		return err
 	}
 	defer lock.Close() // releasing the lock marks us stopped
+	// Runs after st.Close: stop treats a missing pidfile as down, so it must
+	// outlive our hold on the database or a restarted daemon races us for it.
+	defer cleanupFiles()
 	if err := writePid(lock); err != nil {
 		return err
 	}
@@ -314,14 +317,13 @@ func reapDeadProxies(st *store.Store, log *slog.Logger) {
 	}
 }
 
-// shutdown stops the HTTP server, closes the listener, and removes the socket,
-// pidfile, and token.
+// shutdown stops the HTTP server and closes the listener. RunForeground
+// removes the socket, pidfile, and token once the store is closed.
 func shutdown(httpSrv *http.Server, ln net.Listener, log *slog.Logger) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = httpSrv.Shutdown(ctx)
 	_ = ln.Close()
-	cleanupFiles()
 	log.Info("daemon stopped")
 	return nil
 }
